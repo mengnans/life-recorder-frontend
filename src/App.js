@@ -1,57 +1,76 @@
-import React, { Component } from 'react';
-import './App.css';
 
-class App extends Component {
+import React from 'react'
+import client from './client'
+
+export default class App extends React.Component {
 
     constructor(props) {
         super(props);
-        this.state = {
-            error: null,
-            isLoaded: false,
-            records: []
-        };
+        this.state = {records: []};
     }
 
     componentDidMount() {
-        fetch("http://localhost:8080/api/records")
-            .then(res => res.json())
-            .then(
-                (result) => {
-                    this.setState({
-                        isLoaded: true,
-                        records: result._embedded.records
-                    });
-                },
-                // Note: it's important to handle errors here
-                // instead of a catch() block so that we don't swallow
-                // exceptions from actual bugs in components.
-                (error) => {
-                    this.setState({
-                        isLoaded: true,
-                        error
-                    });
-                }
-            )
+        client({method: 'GET', path: 'http://localhost:8080/api/records'}).then(response => {
+            this.setState({records: response.entity._embedded.records});
+        });
     }
 
-  render() {
-      const { error, isLoaded, records } = this.state;
-      if (error) {
-          return <div>Error: {error.message}</div>;
-      } else if (!isLoaded) {
-          return <div>Loading...</div>;
-      } else {
-          return (
-              <ul>
-                  {records.map(record => (
-                      <li key={record.id}>
-                          {record.id} {record.userName} {record.dateTime} {record.description}
-                      </li>
-                  ))}
-              </ul>
-          );
-      }
-  }
+    render() {
+        return (
+            <RecordList records={this.state.records}/>
+        )
+    }
+    //
+    // loadFromServer(pageSize) {
+    //     follow(client, root, [
+    //         {rel: 'employees', params: {size: pageSize}}]
+    //     ).then(employeeCollection => {
+    //         return client({
+    //             method: 'GET',
+    //             path: employeeCollection.entity._links.profile.href,
+    //             headers: {'Accept': 'application/schema+json'}
+    //         }).then(schema => {
+    //             this.schema = schema.entity;
+    //             return employeeCollection;
+    //         });
+    //     }).done(employeeCollection => {
+    //         this.setState({
+    //             employees: employeeCollection.entity._embedded.employees,
+    //             attributes: Object.keys(this.schema.properties),
+    //             pageSize: pageSize,
+    //             links: employeeCollection.entity._links});
+    //     });
+    // }
 }
 
-export default App;
+class RecordList extends React.Component{
+    render() {
+        let records = this.props.records.map(record =>
+            <Record key={record._links.self.href} record={record}/>
+        );
+        return (
+            <table>
+                <tbody>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Description</th>
+                </tr>
+                {records}
+                </tbody>
+            </table>
+        )
+    }
+}
+
+class Record extends React.Component{
+    render() {
+        return (
+            <tr>
+                <td>{this.props.record.userName}</td>
+                <td>{this.props.record.dateTime}</td>
+                <td>{this.props.record.description}</td>
+            </tr>
+        )
+    }
+}
