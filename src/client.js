@@ -29,21 +29,20 @@ registry.register('text/uri-list', () => {
 
 registry.register('application/hal+json', hal);
 
-let client;
-export default client = rest
+let myIncerceptor = interceptor({
+    request: function (request /*, config, meta */) {
+        console.warn(request.path);
+        /* If the URI is a URI Template per RFC 6570 (http://tools.ietf.org/html/rfc6570), trim out the template part */
+        if (request.path.indexOf('{') === -1) {
+            return request;
+        } else {
+            request.path = request.path.split('{')[0];
+            return request;
+        }
+    }
+});
+export default rest
     .wrap(mime, { registry: registry })
-    // .wrap(()=>{
-    //     return interceptor({
-    //         request: function (request /*, config, meta */) {
-    //             /* If the URI is a URI Template per RFC 6570 (http://tools.ietf.org/html/rfc6570), trim out the template part */
-    //             if (request.path.indexOf('{') === -1) {
-    //                 return request;
-    //             } else {
-    //                 request.path = request.path.split('{')[0];
-    //                 return request;
-    //             }
-    //         }
-    //     });
-    // })
+    .wrap(myIncerceptor)
     .wrap(errorCode)
     .wrap(defaultRequest, { headers: { 'Accept': 'application/hal+json' }});
