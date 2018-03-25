@@ -3,10 +3,12 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import client from './client'
 import follow from './follow'
+import './App.css'
 
 export default class App extends React.Component {
 
-    root = 'http://localhost:8080/api';
+    // root = 'http://192.168.0.58:8080/api';
+    root = "http://localhost:8080/api"
 
     constructor(props) {
         super(props);
@@ -18,9 +20,6 @@ export default class App extends React.Component {
     }
 
     componentDidMount() {
-        // client({method: 'GET', path: 'http://localhost:8080/api/records'}).then(response => {
-        //     this.setState({records: response.entity._embedded.records});
-        // });
         this.loadFromServer(this.state.pageSize);
     }
 
@@ -125,7 +124,7 @@ class CreateDialog extends React.Component {
         });
 
         // Navigate away from the dialog to hide it.
-        window.location = "#";
+        window.location = "#window-location";
     }
 
     render() {
@@ -141,7 +140,7 @@ class CreateDialog extends React.Component {
 
                 <div id="createRecord" className="modalDialog">
                     <div>
-                        <a href="#" title="Close" className="close">X</a>
+                        <a href="#window-location" title="Close" className="close">X</a>
 
                         <h2>Create new record</h2>
 
@@ -227,7 +226,6 @@ class RecordList extends React.Component {
                         <th>First Name</th>
                         <th>Last Name</th>
                         <th>Description</th>
-                        <th></th>
                     </tr>
                     {records}
                     </tbody>

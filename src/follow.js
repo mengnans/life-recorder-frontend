@@ -16,6 +16,7 @@ module.exports = function follow(api, rootPath, relArray) {
                 return response.entity._embedded[rel];
             }
 
+            // no link in the response
             if (!response.entity._links) {
                 return [];
             }

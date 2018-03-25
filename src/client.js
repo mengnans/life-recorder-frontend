@@ -31,8 +31,8 @@ registry.register('application/hal+json', hal);
 
 let myIncerceptor = interceptor({
     request: function (request /*, config, meta */) {
-        console.warn(request.path);
         /* If the URI is a URI Template per RFC 6570 (http://tools.ietf.org/html/rfc6570), trim out the template part */
+        console.warn(request);
         if (request.path.indexOf('{') === -1) {
             return request;
         } else {
