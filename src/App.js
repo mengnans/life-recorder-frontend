@@ -1,4 +1,3 @@
-
 import React from 'react'
 import ReactDOM from 'react-dom'
 import client from './client'
@@ -7,8 +6,8 @@ import './App.css'
 
 export default class App extends React.Component {
 
-    // root = 'http://192.168.0.58:8080/api';
-    root = "http://localhost:8080/api"
+    root = 'http://192.168.0.58:8080/api';
+    // root = "http://localhost:8080/api";
 
     constructor(props) {
         super(props);
@@ -24,14 +23,15 @@ export default class App extends React.Component {
     }
 
     onCreate(newRecord) {
-        follow(client, this.root, ['records']).then(recordCollection => {
-            return client({
-                method: 'POST',
-                path: recordCollection.entity._links.self.href,
-                entity: newRecord,
-                headers: {'Content-Type': 'application/json'}
-            })
-        }).then(response => {
+        follow(client, this.root, ['records'])
+            .then(recordCollection => {
+                return client({
+                    method: 'POST',
+                    path: recordCollection.entity._links.self.href,
+                    entity: newRecord,
+                    headers: {'Content-Type': 'application/json'}
+                })
+            }).then(response => {
             return follow(client, this.root, [
                 {rel: 'records', params: {'size': this.state.pageSize}}]);
         }).then(response => {
@@ -67,36 +67,40 @@ export default class App extends React.Component {
     }
 
     loadFromServer(pageSize) {
-        follow(client, this.root, [
-            {rel: 'records', params: {size: pageSize}}]
-        ).then(recordsCollection => {
-            return client({
-                method: 'GET',
-                path: recordsCollection.entity._links.profile.href,
-                headers: {'Accept': 'application/schema+json'}
-            }).then(schema => {
-                this.schema = schema.entity;
-                return recordsCollection;
-            });
-        }).then(recordsCollection => {
+
+        let url = new URL("http://192.168.0.58:8080/api/records"),
+            params = {size:2};
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+        }).then(res=>{
+            return res.json();
+        }).then(response =>{
+            console.log(response);
             this.setState({
-                records: recordsCollection.entity._embedded.records,
-                attributes: Object.keys(this.schema.properties),
+                records: response._embedded.records,
                 pageSize: pageSize,
-                links: recordsCollection.entity._links});
+                links: response._links})
         });
+
+
     }
+
 
     render() {
         return (
             <div>
                 <CreateDialog attributes={this.state.attributes} onCreate={this.onCreate}/>
                 <RecordList records={this.state.records}
-                              links={this.state.links}
-                              pageSize={this.state.pageSize}
-                              onNavigate={this.onNavigate}
-                              onDelete={this.onDelete}
-                              updatePageSize={this.updatePageSize}/>
+                            links={this.state.links}
+                            pageSize={this.state.pageSize}
+                            onNavigate={this.onNavigate}
+                            onDelete={this.onDelete}
+                            updatePageSize={this.updatePageSize}/>
             </div>
         )
     }
@@ -130,7 +134,7 @@ class CreateDialog extends React.Component {
     render() {
         let inputs = this.props.attributes.map(attribute =>
             <p key={attribute}>
-                <input type="text" placeholder={attribute} ref={attribute} className="field" />
+                <input type="text" placeholder={attribute} ref={attribute} className="field"/>
             </p>
         );
 
@@ -178,7 +182,7 @@ class RecordList extends React.Component {
         }
     }
 
-    handleNavFirst(e){
+    handleNavFirst(e) {
         e.preventDefault();
         this.props.onNavigate(this.props.links.first.href);
     }
@@ -238,7 +242,7 @@ class RecordList extends React.Component {
     }
 }
 
-class Record extends React.Component{
+class Record extends React.Component {
 
     constructor(props) {
         super(props);

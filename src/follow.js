@@ -10,8 +10,11 @@ module.exports = function follow(api, rootPath, relArray) {
         return traverseNext(root, rel, arrayItem);
     }, root);
 
+
+
     function traverseNext(root, rel, arrayItem) {
         return root.then(function (response) {
+
             if (hasEmbeddedRel(response.entity, rel)) {
                 return response.entity._embedded[rel];
             }
