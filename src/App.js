@@ -6,8 +6,8 @@ import './App.css'
 
 export default class App extends React.Component {
 
-    root = 'http://192.168.0.58:8080/api';
-    // root = "http://localhost:8080/api";
+    // root = 'http://192.168.0.58:8080/api';
+    root = "http://localhost:8080/api";
 
     constructor(props) {
         super(props);
@@ -15,12 +15,41 @@ export default class App extends React.Component {
         this.updatePageSize = this.updatePageSize.bind(this);
         this.onCreate = this.onCreate.bind(this);
         this.onDelete = this.onDelete.bind(this);
+        this.onUpdate = this.onUpdate.bind(this);
         this.onNavigate = this.onNavigate.bind(this);
     }
 
     componentDidMount() {
         this.loadFromServer(this.state.pageSize);
     }
+
+    onUpdate(record, updatedRecord) {
+        fetch(record._links.self.href, {
+                method: 'PUT',
+                entity: updatedRecord,
+                header: {
+                    'Content-Type': 'application/json'
+                }
+        }).then(response =>{
+                console.log(response);
+                return response;
+            }
+        );
+
+        // client({
+        //     method: 'PUT',
+        //     path: record._links.self.href,
+        //     entity: updatedRecord,
+        //     header: {
+        //         'Content-Type': 'application/json'
+        //     }
+        // }).then(response =>{
+        //         console.log(response);
+        //         return response;
+        //     }
+        // );
+    }
+
 
     onCreate(newRecord) {
         follow(client, this.root, ['records'])
@@ -68,8 +97,8 @@ export default class App extends React.Component {
 
     loadFromServer(pageSize) {
 
-        let url = new URL("http://192.168.0.58:8080/api/records"),
-            params = {size:2};
+        let url = new URL(this.root + "/records"),
+            params = {size: pageSize};
         Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
         fetch(url, {
             method: 'GET',
@@ -77,19 +106,33 @@ export default class App extends React.Component {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
             },
-        }).then(res=>{
-            return res.json();
-        }).then(response =>{
-            console.log(response);
-            this.setState({
-                records: response._embedded.records,
-                pageSize: pageSize,
-                links: response._links})
+        }).then(res => {
+            let response = res.json();
+            return response;
+        }).then(response => {
+            let profileLink = response._links.profile.href;
+            let attributes = null;
+            fetch(profileLink).then
+            (res => {
+                let responseOfProfileLink = res.json();
+                return responseOfProfileLink;
+            }).then(responseOfProfileLink => {
+                let descriptors = responseOfProfileLink.alps.descriptors[0].descriptors;
+                let attributeAmount = descriptors.length;
+                attributes = Array(attributeAmount).fill(null);
+                for (let i = 0; i < attributeAmount; i++) {
+                    attributes[i] = descriptors[i].name;
+                }
+                this.setState({
+                    records: response._embedded.records,
+                    pageSize: pageSize,
+                    links: response._links,
+                    attributes: attributes,
+                })
+            });
+
         });
-
-
     }
-
 
     render() {
         return (
@@ -98,14 +141,16 @@ export default class App extends React.Component {
                 <RecordList records={this.state.records}
                             links={this.state.links}
                             pageSize={this.state.pageSize}
+                            attributes={this.state.attributes}
                             onNavigate={this.onNavigate}
                             onDelete={this.onDelete}
+                            onUpdate={this.onUpdate}
                             updatePageSize={this.updatePageSize}/>
             </div>
         )
     }
-
 }
+
 
 class CreateDialog extends React.Component {
 
@@ -204,7 +249,7 @@ class RecordList extends React.Component {
 
     render() {
         let records = this.props.records.map(record =>
-            <Record key={record._links.self.href} record={record} onDelete={this.props.onDelete}/>
+            <Record key={record._links.self.href} attributes={this.props.attributes} record={record} onDelete={this.props.onDelete} onUpdate={this.props.onUpdate}/>
         );
 
         let navLinks = [];
@@ -227,8 +272,8 @@ class RecordList extends React.Component {
                 <table>
                     <tbody>
                     <tr>
-                        <th>First Name</th>
-                        <th>Last Name</th>
+                        <th>UserName</th>
+                        <th>DateTime</th>
                         <th>Description</th>
                     </tr>
                     {records}
@@ -241,6 +286,57 @@ class RecordList extends React.Component {
         )
     }
 }
+
+class UpdateDialog extends React.Component {
+
+    constructor(props) {
+        super(props);
+        this.handleSubmit = this.handleSubmit.bind(this);
+    }
+
+    handleSubmit(e) {
+        e.preventDefault();
+        let updatedRecord = {};
+        this.props.attributes.forEach(attribute => {
+            updatedRecord[attribute] = ReactDOM.findDOMNode(this.refs[attribute]).value.trim();
+        });
+        this.props.onUpdate(this.props.record, updatedRecord);
+        window.location = "#window_locaiton_2";
+    }
+
+    render() {
+
+        let inputs = this.props.attributes.map(attribute =>
+            <p key={this.props.record[attribute]}>
+                <input type={'text'} placeholder={attribute}
+                       defaultValue={this.props.record[attribute]}
+                       ref={attribute} className={'field'}/>
+            </p>
+        );
+
+
+        let dialogId = 'updateRecord' + this.props.record._links.self.href;
+
+        return (
+            <div key={this.props.record._links.self.href}>
+                <a href={"#" + dialogId}>Update</a>
+                <div id={dialogId} className={"modalDialog"}>
+                    <div>
+                        <a href={'#window_locaiton_2'} title="Close">X</a>
+
+                        <h2>Update an record</h2>
+
+                        <form>
+                            {inputs}
+                            <button onClick={this.handleSubmit}>Update</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+}
+
 
 class Record extends React.Component {
 
@@ -257,9 +353,16 @@ class Record extends React.Component {
         return (
             <tr>
                 <td>{this.props.record.userName}</td>
-                <td>{this.props.record.dateTime}</td>
-                <td>{this.props.record.description}</td>
-            </tr>
-        )
+                <td>{this.props.record.dateTimeOfTheEvent}</td>
+                <td>{this.props.record.descriptionOfTheEvent}</td>
+                <td>
+                    <UpdateDialog record={this.props.record} attributes={this.props.attributes} onUpdate={this.props.onUpdate}/>
+                </td>
+                <td>
+                    <button onClick={this.handleDelete}>Delete</button>
+                </td>
+            </tr>);
     }
 }
+
+
